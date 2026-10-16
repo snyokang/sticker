@@ -60,10 +60,9 @@ func end_drag() -> void:
 	
 	for dir: Vector2 in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
 		var dot := norm.dot(dir)
-		print(dot)
 		if dot > dot_max:
 			target = pivot + 4 * dir
-			grip = target + 1 * dir
+			grip = target + dir
 			dot_max = dot
 	
 	is_dragging = false
