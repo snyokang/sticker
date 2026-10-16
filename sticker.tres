@@ -1,0 +1,52 @@
+[gd_resource type="Shader" format=3 uid="uid://8j8myr475tsx"]
+
+[resource]
+code = "shader_type canvas_item;
+
+uniform vec2 n = vec2(1.0, 0.0);
+uniform vec2 p0 = vec2(0.0);
+
+uniform vec4 back_color: source_color = vec4(0.467, 0.408, 0.243, 1.0);
+
+uniform float reflection_width = 25.0;
+uniform sampler2D reflection;
+
+uniform float shadow_width = 8.0;
+uniform sampler2D front_shadow;
+
+bool is_clamped(vec2 uv) {
+	return all(greaterThanEqual(uv, vec2(0.0)))
+			&& all(lessThanEqual(uv, vec2(1.0)));
+}
+
+void vertex() {
+	float scale = 3.0 * max(TEXTURE_PIXEL_SIZE.x, TEXTURE_PIXEL_SIZE.y)
+			/ min(TEXTURE_PIXEL_SIZE.x, TEXTURE_PIXEL_SIZE.y);
+	
+	VERTEX *= scale;
+	UV = scale * (UV - 0.5) + 0.5;
+}
+
+void fragment() {
+	vec2 p = (UV - 0.5) / TEXTURE_PIXEL_SIZE;
+	float d = dot(p - p0, n);
+	vec2 q = p - 2.0 * n * d;
+	vec2 uv_q = q * TEXTURE_PIXEL_SIZE + 0.5;
+	
+	vec4 sprite = float(is_clamped(UV)) * texture(TEXTURE, UV);
+	vec4 flipped = float(is_clamped(uv_q)) * texture(TEXTURE, uv_q);
+	
+	float shadow_mask = smoothstep(0.0, shadow_width, -d);
+	vec4 shadow = texture(front_shadow, vec2(shadow_mask, 0.0));
+	shadow.a *= sprite.a;
+	
+	vec4 front = mix(shadow, sprite, shadow_mask);
+	
+	float reflection_mask = smoothstep(0.0, reflection_width, -d);
+	vec4 reflection_color = texture(reflection, vec2(reflection_mask, 0.0));
+	vec4 transparent_back_color = mix(flipped, back_color, back_color.a);
+	
+	vec4 back = mix(reflection_color, transparent_back_color, reflection_mask);
+	
+	COLOR = mix(front, back, flipped.a) * (1.0 - step(0.0, d));
+}"
